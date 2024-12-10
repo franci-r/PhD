@@ -1,10 +1,11 @@
 ### COde for PhD 
 
-##General bash options:
+## General bash options: 
+Watch space by #Resources:
 
 #!/bin/bash
 
-# Resources:
+#Resources:
 #SBATCH --ntasks=5
 #SBATCH --partition=short
 #SBATCH --mem=500G
