@@ -1,0 +1,5 @@
+Suffix removal 
+  a=a.txt
+  echo ${a%txt} 
+  a. # removes txt
+
