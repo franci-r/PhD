@@ -1,0 +1,3 @@
+# count how many reads are below 500 bp
+# divide number by 2?
+awk 'length($0) < 500' zygotes_less20kb.fastq | wc -l
