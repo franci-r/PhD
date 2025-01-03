@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Resources:
+#SBATCH --ntasks=10
+#SBATCH --partition=short
+#SBATCH --mem=100G
+#SBATCH --time=0-23:20:00 
+#SBATCH --job-name=map_blast
+#SBATCH --output=map_blast.out
+#SBATCH --mail-type=END
+#SBATCH --mail-user=grte3662@ox.ac.uk
+
+date
+# combine all fastqs 
+zcat *fastq.gz > all.fastq
+
+# map
+module load minimap2
+
+index=/ceph/project/CELLOseq/lmcleand/reference_genomes/Mus_musculus.GRCm39.dna.primary_assembly.fa.mmi
+
+minimap2 -ax map-ont "$index" all.fastq > all.sam
+
+# identify % of mapped reads 
+module load samtools 
+
+mapped_n=$(samtools view -c -F 4 all.sam)
+total_n=$(samtools view -c all.sam)
+
+echo Percentage of mapped reads: $((mapped_n *100 / total_n))
+
+# export unmapped reads
+samtools view -f 4 all.sam > un_mapped.sam
+
+# convert to fastq
+samtools fasta un_mapped.sam > un_mapped.fasta
+
+date
+module load blast
+
+blastn -query un_mapped.fasta -db nt -remote -out results.txt \
+       -max_target_seqs 1 -evalue 1e-5 -outfmt "6 staxids" -num_threads 10
+
+# count taxids
+cat results.txt | sort | uniq -c | sort -nr > data.txt 
+
+# open gnuplot and run graphics
+gnuplot -e "
+
+set terminal pngcairo size 800,600 enhanced font 'Verdana,10'
+set output 'unmapped_reads_barchart.png'
+
+set style data histograms
+set style histogram cluster gap 1
+set style fill solid 0.5 border -1
+set boxwidth 0.9
+
+set ylabel "Read number"
+set xlabel "Species ID"
+set xtics rotate by -45  # Rotate X-axis labels for readability
+set grid ytics
+
+set title "Barcharts of origin of unmapped reads"
+set key off
+
+plot 'data.txt' using 1:xtic(2) title ''  
+
+q "
+
+echo slay
+date
+# remove intermediate files 
+#rm iPSC.fasta
+
+
+#cat results.txt | sort | uniq -c | sort -nr  | awk '{print $1}' | grep -nwm 1 '^1$' | cut -d ':' -f 1
