@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --ntasks=1  # Number of tasks per array job, typically 1 for this type of job
+#SBATCH --cpus-per-task=1  # Number of CPU cores per task
+#SBATCH --mem=50G  # Adjust based on actual memory needs
+#SBATCH --partition=long  # Check if this partition is correct for your job
+#SBATCH --time=7-00:00:00  # Time limit (5 days)
+#SBATCH --array=1-96%10  # Adjust array range to match the number of specific barcodes
+#SBATCH --output=%x-%A_%a.out  # Standard output file
+#SBATCH --error=%x-%A_%a.err  # Standard error file
+
+
+# Get the list of Rmd files
+FILES=($my_folder/internal_adaptor_filter_dT_*.Rmd)
+
+
+# Extract the file for the current array index (adjusting for 0-based indexing)
+rmd_file="${FILES[$SLURM_ARRAY_TASK_ID - 1]}"
+
+# Run the Rmd file with Singularity
+singularity exec -B $path $simg R --vanilla -e "rmarkdown::render('$rmd_file')"
